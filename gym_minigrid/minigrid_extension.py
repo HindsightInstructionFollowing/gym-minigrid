@@ -21,7 +21,7 @@ class GridAttr(Grid):
         if vis_mask is None:
             vis_mask = np.ones((self.width, self.height), dtype=bool)
 
-        array = np.zeros((self.width, self.height, 3), dtype='uint8')
+        array = np.zeros((self.width, self.height, 5), dtype='uint8')
         for i in range(self.width):
             for j in range(self.height):
                 if vis_mask[i, j]:

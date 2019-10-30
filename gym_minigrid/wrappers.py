@@ -9,7 +9,7 @@ from .minigrid import OBJECT_TO_IDX, COLOR_TO_IDX, STATE_TO_IDX
 from .minigrid import CELL_PIXELS
 
 class ReseedWrapper(gym.core.Wrapper):
-    """
+    """{{
     Wrapper to always regenerate an environment with the same set of seeds.
     This can be used to force an environment to always keep the same
     configuration when reset.
@@ -330,3 +330,18 @@ class ViewSizeWrapper(gym.core.Wrapper):
 
     def step(self, action):
         return self.env.step(action)
+
+class LessActionAndObsWrapper(gym.core.Wrapper):
+
+    def __init__(self, env):
+        super().__init__(env)
+        self.action_space = spaces.Discrete(4)
+
+    def step(self, action):
+        assert self.action_space.contains(action), "Action not available in LessActionAndObsWrapper. Action : {}".format(action)
+        obs, reward, done, info = self.env.step(action)
+
+        # Reduce complexity by removing open/close, not useful in many env
+        obs["image"] = obs["image"][:,:,:-1] # Remove last element in state
+
+        return obs, reward, done, info

@@ -68,16 +68,52 @@ DIR_TO_VEC = [
     np.array((0, -1)),
 ]
 
+
+# ADDITIONNAL ATTRIBUTES
+#=======================
+# Map of object shade to integers
+SHADE_TO_IDX = {
+    'very_light'    : 0,
+    'light'        : 1,
+    'neutral'       : 2,
+    'dark'          : 3,
+    'very_dark'      : 4,
+}
+
+IDX_TO_SHADE = dict(zip(SHADE_TO_IDX.values(), SHADE_TO_IDX.keys()))
+DEFAULT_SHADE = IDX_TO_SHADE[0]
+
+# Map of object size to integers
+SIZE_TO_IDX = {
+    'tiny'    : 0,
+    'small'        : 1,
+    'medium'       : 2,
+    'large'          : 3,
+    'giant'      : 4,
+}
+
+IDX_TO_SIZE = dict(zip(SIZE_TO_IDX.values(), SIZE_TO_IDX.keys()))
+DEFAULT_SIZE= IDX_TO_SIZE[0]
+
+#=====================================================
+#=====================================================
+
 class WorldObj:
     """
     Base class for grid world objects
     """
 
-    def __init__(self, type, color):
+    def __init__(self, type, color, shade=DEFAULT_SHADE, size=DEFAULT_SIZE):
         assert type in OBJECT_TO_IDX, type
         assert color in COLOR_TO_IDX, color
+        assert shade in SHADE_TO_IDX, shade
+        assert size in SIZE_TO_IDX, size
+
         self.type = type
         self.color = color
+        self.size = size
+        self.shade = shade
+
         self.contains = None
 
         # Initial position of the object
@@ -281,8 +317,11 @@ class Door(WorldObj):
             r.drawCircle(CELL_PIXELS * 0.75, CELL_PIXELS * 0.5, 2)
 
 class Key(WorldObj):
-    def __init__(self, color='blue'):
-        super(Key, self).__init__('key', color)
+    def __init__(self, color='blue', shade=DEFAULT_SHADE, size=DEFAULT_SIZE):
+        super(Key, self).__init__(type='key',
+                                  color=color,
+                                  shade=shade,
+                                  size=size)
 
     def can_pickup(self):
         return True
@@ -318,8 +357,11 @@ class Key(WorldObj):
         r.drawCircle(18, 9, 2)
 
 class Ball(WorldObj):
-    def __init__(self, color='blue'):
-        super(Ball, self).__init__('ball', color)
+    def __init__(self, color='blue', shade=DEFAULT_SHADE, size=DEFAULT_SIZE):
+        super(Ball, self).__init__(type='ball',
+                                   color=color,
+                                   shade=shade,
+                                   size=size)
 
     def can_pickup(self):
         return True
@@ -437,7 +479,8 @@ class Grid:
         Rotate the grid to the left (counter-clockwise)
         """
 
-        grid = Grid(self.height, self.width)
+        grid_class = self.__class__
+        grid = grid_class(self.height, self.width)
 
         for i in range(self.width):
             for j in range(self.height):
@@ -451,7 +494,10 @@ class Grid:
         Get a subset of the grid
         """
 
-        grid = Grid(width, height)
+        grid_class = self.__class__
+        grid = grid_class(width=width, height=height)
+
+        # grid = Grid(width, height)
 
         for j in range(0, height):
             for i in range(0, width):
