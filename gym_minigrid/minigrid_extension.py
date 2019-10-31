@@ -9,7 +9,7 @@ from gym import spaces
 class GridAttr(Grid):
     def __init__(self, width, height):
         """
-        Remove channel "Opened or not" and add other attributes to an object
+        Add more attributes to the object description
         """
         super().__init__(width=width, height=height)
 
