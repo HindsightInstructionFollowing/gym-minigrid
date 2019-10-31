@@ -333,6 +333,42 @@ class ViewSizeWrapper(gym.core.Wrapper):
     def step(self, action):
         return self.env.step(action)
 
+
+class FrameStackerWrapper(gym.core.ObservationWrapper):
+    def __init__(self, env, n_stack=4):
+        """
+        Stack last frames to give the agent a bit a memory
+
+        old observation shape is : (width, height, channel)
+        new observation is : (N_STACK, width, height, channel)
+        """
+        super().__init__(env=env)
+
+        # Modify observation space to contains stacking, pre-pending a dimension
+        obs_space = {}
+        for key in env.observation_space.spaces.keys():
+            obs_space[key] = env.observation_space.spaces[key]
+
+        low, high, shape = obs_space["image"].low, obs_space["image"].high, obs_space["image"].shape
+        new_shape = (n_stack, *shape)
+        obs_space["image"] = spaces.Box(low=low, high=high, shape=new_shape)
+
+        self.observation_space = spaces.Dict(obs_space)
+        self.last_frames = []
+        self.n_stack = n_stack
+
+    def reset(self):
+        obs = self.env.reset()
+        last_frame = obs["image"]
+        self.last_frames = [last_frame]*self.n_stack
+        obs["image"] = np.stack(self.last_frames)
+
+    def step(self, action):
+        obs = self.env.step(action)
+        self.last_frames.append(obs["image"])
+        self.last_frames.pop(0)
+        return np.stack(self.last_frames)
+
 class LessActionAndObsWrapper(gym.core.Wrapper):
 
     def __init__(self, env):
@@ -344,8 +380,11 @@ class LessActionAndObsWrapper(gym.core.Wrapper):
         for key in env.observation_space.spaces.keys():
             obs_space[key] = env.observation_space.spaces[key]
 
-        n_channel = obs_space["image"].shape[2]
-        obs_space["image"] = spaces.Box(0, 255, (7,7,n_channel-1))
+        n_channel = obs_space["image"].shape[-1]
+        old_shape = obs_space["image"].shape[:-1]
+
+        # Change the last dimension, whatever the number of dimension
+        obs_space["image"] = spaces.Box(0, 255, (*old_shape,n_channel-1))
         self.observation_space = spaces.Dict(obs_space)
 
     def step(self, action):
@@ -382,6 +421,7 @@ class TextWrapper(gym.core.ObservationWrapper):
             obs_space[key] = env.observation_space.spaces[key]
 
         obs_space["mission"] = spaces.Box(0, self.max_vocabulary, (self.sentence_max_length,))
+        self.observation_space = spaces.Dict(obs_space)
 
     def reset(self):
         obs = self.env.reset()
