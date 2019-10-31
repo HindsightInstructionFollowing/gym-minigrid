@@ -349,7 +349,7 @@ class FrameStackerWrapper(gym.core.ObservationWrapper):
         for key in env.observation_space.spaces.keys():
             obs_space[key] = env.observation_space.spaces[key]
 
-        low, high, shape = obs_space["image"].low, obs_space["image"].high, obs_space["image"].shape
+        low, high, shape = int(obs_space["image"].low.min()), int(obs_space["image"].high.max()), obs_space["image"].shape
         new_shape = (n_stack, *shape)
         obs_space["image"] = spaces.Box(low=low, high=high, shape=new_shape)
 
