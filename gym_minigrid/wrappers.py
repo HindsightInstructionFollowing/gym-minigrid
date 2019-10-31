@@ -5,8 +5,8 @@ from functools import reduce
 import numpy as np
 import gym
 from gym import error, spaces, utils
-from .minigrid import OBJECT_TO_IDX, COLOR_TO_IDX, STATE_TO_IDX
-from .minigrid import CELL_PIXELS
+from gym_minigrid.minigrid import OBJECT_TO_IDX, COLOR_TO_IDX, STATE_TO_IDX
+from gym_minigrid.minigrid import CELL_PIXELS
 
 import json
 
@@ -366,16 +366,33 @@ class TextWrapper(gym.core.ObservationWrapper):
         super().__init__(env)
 
         # Word => Index
-        self.w2i = json.load(vocab_file_str)
+        vocab_dict = json.load(open(vocab_file_str, 'r'))
+        self.w2i = vocab_dict["vocabulary"]
+
+        self.max_vocabulary = len(self.w2i)
+        self.sentence_max_length = vocab_dict["sentence_max_length"]
 
         # Index => Word
         self.i2w = list(range(len(self.w2i)))
         for word, index in self.w2i.items():
             self.i2w[index] = word
 
+        obs_space = {}
+        for key in env.observation_space.spaces.keys():
+            obs_space[key] = env.observation_space.spaces[key]
+
+        obs_space["mission"] = spaces.Box(0, self.max_vocabulary, (self.sentence_max_length,))
+
     def reset(self):
         obs = self.env.reset()
         self.current_mission = [self.w2i(word) for word in obs["mission"]]
+
+        # Pad
+        mission_len = len(self.current_mission)
+        n_padding = self.sentence_max_length - mission_len
+        if n_padding > 0:
+            self.current_mission.extend([0]*n_padding)
+
         self.raw_mission = obs["mission"]
 
         obs["mission"] = self.current_mission
@@ -390,4 +407,15 @@ class TextWrapper(gym.core.ObservationWrapper):
         return obs, reward, done, info
 
 
+if __name__ == "__main__":
+
+    from gym_minigrid.envs.fetch_attr import FetchAttrEnv
+    missons_file_str = "envs/missions/fetch_train_missions_10_percent.json"
+
+    env = FetchAttrEnv(size=8,
+                       numObjs=10,
+                       missions_file_str=missons_file_str)
+
+    env = LessActionAndObsWrapper(TextWrapper(env=env, vocab_file_str="envs/missions/vocab_fetch.json"))
+    print(env.observation_space)
 
