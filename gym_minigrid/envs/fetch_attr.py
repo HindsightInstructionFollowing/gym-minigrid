@@ -22,12 +22,10 @@ class FetchAttrEnv(MiniGridEnv):
         self,
         size=8,
         numObjs=10,
-        missions_file_str="fetch_train_missions_10_percent.json"
+        missions_file_str="gym-minigrid/gym_minigrid/envs/missions/fetch_train_missions_10_percent.json"
     ):
         self.numObjs = numObjs
 
-        missions_root = "gym_minigrid/envs/missions"
-        missions_file_str = path.join(missions_root, missions_file_str)
         self.missions_list = json.load(open(missions_file_str, 'r'))
 
         super().__init__(
@@ -36,6 +34,9 @@ class FetchAttrEnv(MiniGridEnv):
             # Set this to True for maximum speed
             see_through_walls=True
         )
+
+        obs_space = {"image" : gym.spaces.Box(0, 255, (7,7,5))}
+        self.observation_space = gym.spaces.Dict(obs_space)
 
     def _gen_grid(self, width, height):
         # Adding new attributes here !

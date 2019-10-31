@@ -8,6 +8,8 @@ from gym import error, spaces, utils
 from .minigrid import OBJECT_TO_IDX, COLOR_TO_IDX, STATE_TO_IDX
 from .minigrid import CELL_PIXELS
 
+import json
+
 class ReseedWrapper(gym.core.Wrapper):
     """{{
     Wrapper to always regenerate an environment with the same set of seeds.
@@ -337,11 +339,55 @@ class LessActionAndObsWrapper(gym.core.Wrapper):
         super().__init__(env)
         self.action_space = spaces.Discrete(4)
 
+        # Modify observation space to contains the correct number of channel
+        obs_space = {}
+        for key in env.observation_space.spaces.keys():
+            obs_space[key] = env.observation_space.spaces[key]
+
+        n_channel = obs_space["image"].shape[2]
+        obs_space["image"] = spaces.Box(0, 255, (7,7,n_channel-1))
+        self.observation_space = spaces.Dict(obs_space)
+
     def step(self, action):
         assert self.action_space.contains(action), "Action not available in LessActionAndObsWrapper. Action : {}".format(action)
         obs, reward, done, info = self.env.step(action)
 
         # Reduce complexity by removing open/close, not useful in many env
         obs["image"] = obs["image"][:,:,:-1] # Remove last element in state
+        return obs, reward, done, info
+
+class TextWrapper(gym.core.ObservationWrapper):
+
+    def __init__(self, env, vocab_file_str="gym-minigrid/gym_minigrid/envs/missions/vocab_fetch.json"):
+        """
+        Load vocabulary from file, path in str format is given as input to TextWrapper
+        """
+
+        super().__init__(env)
+
+        # Word => Index
+        self.w2i = json.load(vocab_file_str)
+
+        # Index => Word
+        self.i2w = list(range(len(self.w2i)))
+        for word, index in self.w2i.items():
+            self.i2w[index] = word
+
+    def reset(self):
+        obs = self.env.reset()
+        self.current_mission = [self.w2i(word) for word in obs["mission"]]
+        self.raw_mission = obs["mission"]
+
+        obs["mission"] = self.current_mission
+        obs["raw_mission"] = self.raw_mission
+        return obs
+
+    def step(self, action):
+        obs, reward, done, info = self.env.step(action)
+        obs["mission"] = self.current_mission
+        obs["raw_mission"] = self.raw_mission
 
         return obs, reward, done, info
+
+
+
