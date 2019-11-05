@@ -2,7 +2,7 @@ from .minigrid import *
 
 def reject_next_to(env, pos):
     """
-    Function to filter out object positions that are right next to
+    Function to filter out_test object positions that are right next to
     the agent's starting point
     """
 

@@ -956,7 +956,7 @@ class MiniGridEnv(gym.Env):
 
         :param top: top-left position of the rectangle where to place
         :param size: size of the rectangle where to place
-        :param reject_fn: function to filter out potential positions
+        :param reject_fn: function to filter out_test potential positions
         """
 
         if top is None:

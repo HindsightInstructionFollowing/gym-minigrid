@@ -9,6 +9,7 @@ from gym_minigrid.minigrid import OBJECT_TO_IDX, COLOR_TO_IDX, STATE_TO_IDX
 from gym_minigrid.minigrid import CELL_PIXELS
 
 import json
+import torch
 
 class ReseedWrapper(gym.core.Wrapper):
     """{{
@@ -362,12 +363,16 @@ class FrameStackerWrapper(gym.core.ObservationWrapper):
         last_frame = obs["image"]
         self.last_frames = [last_frame]*self.n_stack
         obs["image"] = np.stack(self.last_frames)
+        return obs
 
     def step(self, action):
-        obs = self.env.step(action)
+        obs, reward, done, info = self.env.step(action)
         self.last_frames.append(obs["image"])
         self.last_frames.pop(0)
-        return np.stack(self.last_frames)
+
+        obs["image"] = np.stack(self.last_frames)
+
+        return obs, reward, done, info
 
 class LessActionAndObsWrapper(gym.core.Wrapper):
 
@@ -387,13 +392,18 @@ class LessActionAndObsWrapper(gym.core.Wrapper):
         obs_space["image"] = spaces.Box(0, 255, (*old_shape,n_channel-1))
         self.observation_space = spaces.Dict(obs_space)
 
+    def _gen_obs(self, obs):
+        # Reduce complexity by removing open/close, not useful in many env
+        obs["image"] = obs["image"][:,:,:-1] # Remove last element in state
+        return obs
+
+    def reset(self):
+        return self._gen_obs(self.env.reset())
+
     def step(self, action):
         assert self.action_space.contains(action), "Action not available in LessActionAndObsWrapper. Action : {}".format(action)
         obs, reward, done, info = self.env.step(action)
-
-        # Reduce complexity by removing open/close, not useful in many env
-        obs["image"] = obs["image"][:,:,:-1] # Remove last element in state
-        return obs, reward, done, info
+        return self._gen_obs(obs), reward, done, info
 
 class TextWrapper(gym.core.ObservationWrapper):
 
@@ -425,7 +435,7 @@ class TextWrapper(gym.core.ObservationWrapper):
 
     def reset(self):
         obs = self.env.reset()
-        self.current_mission = [self.w2i(word) for word in obs["mission"]]
+        self.current_mission = [self.w2i[word] for word in obs["mission"].split(" ")]
 
         # Pad
         mission_len = len(self.current_mission)
@@ -445,6 +455,23 @@ class TextWrapper(gym.core.ObservationWrapper):
         obs["raw_mission"] = self.raw_mission
 
         return obs, reward, done, info
+
+class TorchWrapper(gym.core.ObservationWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+
+    def _prep_obs(self, obs):
+
+        obs["image"] = torch.Tensor(obs["image"]).unsqueeze(0)
+        obs["mission"] = torch.LongTensor(obs["mission"])
+        return obs
+
+    def step(self, act):
+        obs, reward, done, info = self.env.step(act)
+        return self._prep_obs(obs), reward, done, info
+
+    def reset(self):
+        return self._prep_obs(self.env.reset())
 
 
 if __name__ == "__main__":

@@ -155,7 +155,7 @@ class MultiRoomEnv(MiniGridEnv):
         else:
             assert False, entryDoorWall
 
-        # If the room is out of the grid, can't place a room here
+        # If the room is out_test of the grid, can't place a room here
         if topX < 0 or topY < 0:
             return False
         if topX + sizeX > self.width or topY + sizeY >= self.height:
@@ -187,7 +187,7 @@ class MultiRoomEnv(MiniGridEnv):
         # Try placing the next room
         for i in range(0, 8):
 
-            # Pick which wall to place the out door on
+            # Pick which wall to place the out_test door on
             wallSet = set((0, 1, 2, 3))
             wallSet.remove(entryDoorWall)
             exitDoorWall = self._rand_elem(sorted(wallSet))
