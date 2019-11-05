@@ -361,15 +361,17 @@ class FrameStackerWrapper(gym.core.ObservationWrapper):
     def reset(self):
         obs = self.env.reset()
         last_frame = obs["image"]
+        obs["last_state"] = last_frame
         self.last_frames = [last_frame]*self.n_stack
         obs["image"] = np.stack(self.last_frames)
         return obs
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
+
+        obs["last_state"] = obs["image"]
         self.last_frames.append(obs["image"])
         self.last_frames.pop(0)
-
         obs["image"] = np.stack(self.last_frames)
 
         return obs, reward, done, info
