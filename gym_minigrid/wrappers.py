@@ -459,13 +459,33 @@ class TextWrapper(gym.core.ObservationWrapper):
         return obs, reward, done, info
 
 class TorchWrapper(gym.core.ObservationWrapper):
-    def __init__(self, env):
+    def __init__(self, env, device='cpu'):
         super().__init__(env)
+        self.device = device
+
+        obs_space = {}
+        for key in env.observation_space.spaces.keys():
+            obs_space[key] = env.observation_space.spaces[key]
+
+        h, w, c = obs_space["image"].shape[-3:]
+        im_space_shape = list(obs_space["image"].shape)
+        im_space_shape[-3:] = c, h, w
+        obs_space["image"] = spaces.Box(0, 255, shape=im_space_shape)
+
+        self.observation_space = gym.spaces.Dict(obs_space)
 
     def _prep_obs(self, obs):
 
-        obs["image"] = torch.Tensor(obs["image"]).unsqueeze(0)
-        obs["mission"] = torch.LongTensor(obs["mission"])
+        obs["image"] = torch.Tensor(obs["image"])
+        if obs["image"].dim() == 4:
+            obs["image"] = obs["image"].permute(0,3,1,2)
+        else:
+            assert obs["image"].dim() == 3, "Image should be of dim 4 (stacked) or 3 (single image)"
+            obs["image"] = obs["image"].permute(1, 2, 0)
+
+        obs["image"] = obs["image"].unsqueeze(0).to(self.device)
+
+        obs["mission"] = torch.LongTensor(obs["mission"]).to(self.device)
         return obs
 
     def step(self, act):
