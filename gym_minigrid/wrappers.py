@@ -439,11 +439,11 @@ class TextWrapper(gym.core.ObservationWrapper):
         obs = self.env.reset()
         self.current_mission = [self.w2i[word] for word in obs["mission"].split(" ")]
 
-        # Pad
-        mission_len = len(self.current_mission)
-        n_padding = self.sentence_max_length - mission_len
-        if n_padding > 0:
-            self.current_mission.extend([0]*n_padding)
+        # No Padding, done in model
+        # mission_len = len(self.current_mission)
+        # n_padding = self.sentence_max_length - mission_len
+        # if n_padding > 0:
+        #     self.current_mission.extend([0]*n_padding)
 
         self.raw_mission = obs["mission"]
 
@@ -452,6 +452,7 @@ class TextWrapper(gym.core.ObservationWrapper):
         return obs
 
     def step(self, action):
+
         obs, reward, done, info = self.env.step(action)
         obs["mission"] = self.current_mission
         obs["raw_mission"] = self.raw_mission
