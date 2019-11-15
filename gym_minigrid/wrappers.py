@@ -459,7 +459,44 @@ class TextWrapper(gym.core.ObservationWrapper):
 
         return obs, reward, done, info
 
+
+class CartPoleWrapper(gym.core.ObservationWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+
+        obs_space = dict()
+        obs_space["image"] = gym.spaces.Box(0,1,(4,))
+        obs_space["mission"] = gym.spaces.Box(0,1,(2,))
+        self.observation_space = spaces.Dict(obs_space)
+
+    def observation(self, observation):
+        obs = dict()
+        obs["image"] = observation
+        obs["mission"] = [1,1]
+        return obs
+
+
 class TorchWrapper(gym.core.ObservationWrapper):
+    def __init__(self, env, device='cpu'):
+        super().__init__(env)
+        self.device = device
+        if isinstance(env.observation_space, gym.spaces.Dict) :
+            self.observation = self._dict_space_to_torch
+        elif isinstance(env.observation_space, gym.spaces.Box):
+            self.observation = self._box_space_to_torch
+        else:
+            raise NotImplementedError("Can only deal with box and dict")
+
+    def _dict_space_to_torch(self, obs):
+        for key in obs.keys():
+            obs[key] = torch.tensor(obs[key]).float().unsqueeze(0).to(self.device)
+        return obs
+
+    def _box_space_to_torch(self, obs):
+        return torch.tensor(obs).unsqueeze(0).to(self.device)
+
+
+class MinigridTorchWrapper(gym.core.ObservationWrapper):
     def __init__(self, env, device='cpu'):
         super().__init__(env)
         self.device = device
