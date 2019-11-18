@@ -437,7 +437,10 @@ class TextWrapper(gym.core.ObservationWrapper):
 
     def reset(self):
         obs = self.env.reset()
+
+        self.raw_mission = obs["mission"]
         self.current_mission = [self.w2i[word] for word in obs["mission"].split(" ")]
+        self.len_mission = len(self.current_mission)
 
         # No Padding, done in model
         # mission_len = len(self.current_mission)
@@ -445,10 +448,10 @@ class TextWrapper(gym.core.ObservationWrapper):
         # if n_padding > 0:
         #     self.current_mission.extend([0]*n_padding)
 
-        self.raw_mission = obs["mission"]
-
         obs["mission"] = self.current_mission
         obs["raw_mission"] = self.raw_mission
+        obs["mission_length"] = self.len_mission
+
         return obs
 
     def step(self, action):
@@ -456,6 +459,7 @@ class TextWrapper(gym.core.ObservationWrapper):
         obs, reward, done, info = self.env.step(action)
         obs["mission"] = self.current_mission
         obs["raw_mission"] = self.raw_mission
+        obs["mission_length"] = self.len_mission
 
         return obs, reward, done, info
 
@@ -473,6 +477,7 @@ class CartPoleWrapper(gym.core.ObservationWrapper):
         obs = dict()
         obs["image"] = observation
         obs["mission"] = [1,1]
+        obs["mission_length"] = [2]
         return obs
 
 
@@ -519,11 +524,12 @@ class MinigridTorchWrapper(gym.core.ObservationWrapper):
             obs["image"] = obs["image"].permute(0,3,1,2)
         else:
             assert obs["image"].dim() == 3, "Image should be of dim 4 (stacked) or 3 (single image)"
-            obs["image"] = obs["image"].permute(1, 2, 0)
+            obs["image"] = obs["image"].permute(2, 0, 1)
 
         obs["image"] = obs["image"].unsqueeze(0).to(self.device)
+        obs["mission"] = torch.LongTensor(obs["mission"]).unsqueeze(0).to(self.device)
+        obs["mission_length"] = torch.LongTensor([obs["mission_length"]]).to(self.device)
 
-        obs["mission"] = torch.LongTensor(obs["mission"]).to(self.device)
         return obs
 
     def step(self, act):
