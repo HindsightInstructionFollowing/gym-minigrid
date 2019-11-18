@@ -376,12 +376,19 @@ class FrameStackerWrapper(gym.core.ObservationWrapper):
 
         return obs, reward, done, info
 
-class LessActionAndObsWrapper(gym.core.Wrapper):
 
+class RemoveUselessActionWrapper(gym.core.Wrapper):
     def __init__(self, env):
         super().__init__(env)
         self.action_space = spaces.Discrete(4)
+    def step(self, act):
+        assert self.action_space.contains(act), "Action not in action space"
+        return self.env.step(act)
 
+class RemoveUselessChannelWrapper(gym.core.Wrapper):
+
+    def __init__(self, env):
+        super().__init__(env)
         # Modify observation space to contains the correct number of channel
         obs_space = {}
         for key in env.observation_space.spaces.keys():
@@ -394,18 +401,10 @@ class LessActionAndObsWrapper(gym.core.Wrapper):
         obs_space["image"] = spaces.Box(0, 255, (*old_shape,n_channel-1))
         self.observation_space = spaces.Dict(obs_space)
 
-    def _gen_obs(self, obs):
+    def observation(self, obs):
         # Reduce complexity by removing open/close, not useful in many env
         obs["image"] = obs["image"][:,:,:-1] # Remove last element in state
         return obs
-
-    def reset(self):
-        return self._gen_obs(self.env.reset())
-
-    def step(self, action):
-        assert self.action_space.contains(action), "Action not available in LessActionAndObsWrapper. Action : {}".format(action)
-        obs, reward, done, info = self.env.step(action)
-        return self._gen_obs(obs), reward, done, info
 
 class TextWrapper(gym.core.ObservationWrapper):
 
@@ -517,8 +516,7 @@ class MinigridTorchWrapper(gym.core.ObservationWrapper):
 
         self.observation_space = gym.spaces.Dict(obs_space)
 
-    def _prep_obs(self, obs):
-
+    def observation(self, obs):
         obs["image"] = torch.Tensor(obs["image"])
         if obs["image"].dim() == 4:
             obs["image"] = obs["image"].permute(0,3,1,2)
@@ -529,15 +527,7 @@ class MinigridTorchWrapper(gym.core.ObservationWrapper):
         obs["image"] = obs["image"].unsqueeze(0).to(self.device)
         obs["mission"] = torch.LongTensor(obs["mission"]).unsqueeze(0).to(self.device)
         obs["mission_length"] = torch.LongTensor([obs["mission_length"]]).to(self.device)
-
         return obs
-
-    def step(self, act):
-        obs, reward, done, info = self.env.step(act)
-        return self._prep_obs(obs), reward, done, info
-
-    def reset(self):
-        return self._prep_obs(self.env.reset())
 
 
 if __name__ == "__main__":
