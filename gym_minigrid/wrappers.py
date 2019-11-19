@@ -378,14 +378,14 @@ class FrameStackerWrapper(gym.core.ObservationWrapper):
 
 
 class RemoveUselessActionWrapper(gym.core.Wrapper):
-    def __init__(self, env):
+    def __init__(self, env, n_action=4):
         super().__init__(env)
         self.action_space = spaces.Discrete(4)
     def step(self, act):
         assert self.action_space.contains(act), "Action not in action space"
         return self.env.step(act)
 
-class RemoveUselessChannelWrapper(gym.core.Wrapper):
+class RemoveUselessChannelWrapper(gym.core.ObservationWrapper):
 
     def __init__(self, env):
         super().__init__(env)
@@ -406,9 +406,9 @@ class RemoveUselessChannelWrapper(gym.core.Wrapper):
         obs["image"] = obs["image"][:,:,:-1] # Remove last element in state
         return obs
 
-class TextWrapper(gym.core.ObservationWrapper):
+class Word2IndexWrapper(gym.core.ObservationWrapper):
 
-    def __init__(self, env, vocab_file_str="gym-minigrid/gym_minigrid/envs/missions/vocab_fetch.json"):
+    def __init__(self, env, vocab_file_str=""):
         """
         Load vocabulary from file, path in str format is given as input to TextWrapper
         """
@@ -529,6 +529,21 @@ class MinigridTorchWrapper(gym.core.ObservationWrapper):
         obs["mission_length"] = torch.LongTensor([obs["mission_length"]]).to(self.device)
         return obs
 
+def wrap_env_from_list(env, wrappers_json):
+
+    str2wrap = {
+        "framestackerwrapper" : FrameStackerWrapper,
+        "word2indexwrapper": Word2IndexWrapper,
+        "removeuselessactionwrapper" : RemoveUselessActionWrapper,
+        "removeuselesschannelwrapper" : RemoveUselessChannelWrapper,
+        "minigridtorchwrapper": MinigridTorchWrapper
+    }
+
+    for wrap_dict in wrappers_json:
+        current_wrap = str2wrap[wrap_dict["name"].lower()]
+        env = current_wrap(env, **wrap_dict["params"])
+
+    return env
 
 if __name__ == "__main__":
 
@@ -539,6 +554,6 @@ if __name__ == "__main__":
                        numObjs=10,
                        missions_file_str=missons_file_str)
 
-    env = LessActionAndObsWrapper(TextWrapper(env=env, vocab_file_str="envs/missions/vocab_fetch.json"))
+    env = LessActionAndObsWrapper(Word2IndexWrapper(env=env, vocab_file_str="envs/missions/vocab_fetch.json"))
     print(env.observation_space)
 

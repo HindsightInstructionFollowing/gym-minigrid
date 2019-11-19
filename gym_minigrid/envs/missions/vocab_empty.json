@@ -1,0 +1,14 @@
+{
+  "vocabulary": {
+    "go": 0,
+    "get" : 1,
+    "to" : 8,
+    "the" : 2,
+    "green" : 3,
+    "goal" : 4,
+    "square" : 5,
+    "BEG": 6,
+    "END": 7
+  },
+  "sentence_max_length" : 6
+}

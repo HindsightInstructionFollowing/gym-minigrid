@@ -26,11 +26,7 @@
     "large": 23,
     "giant": 24,
     "BEG": 25,
-    "END": 26,
-    "to" : 27,
-    "the" : 28,
-    "goal" : 29,
-    "square" : 30
+    "END": 26
   },
   "sentence_max_length" : 8
 }

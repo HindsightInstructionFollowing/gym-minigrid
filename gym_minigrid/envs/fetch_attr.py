@@ -13,7 +13,6 @@ class FetchAttrEnv(MiniGridEnv):
 
     Additions made :
     ============================
-    - Hindsight available in info
     - Adding more attributes to the object to have more complex task
     - Choose missions among list, send via json (clear train/test separations)
     """
