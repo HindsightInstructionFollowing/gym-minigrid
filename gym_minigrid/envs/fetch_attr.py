@@ -54,14 +54,14 @@ class FetchAttrEnv(MiniGridEnv):
         objs = []
 
         # First object, always the same
-        objColor, objType, objSize, objShade = self.missions_list[0]
-        if objType == 'key':
-            obj = Key(objColor, objShade, objSize)
-        elif objType == 'ball':
-            obj = Ball(objColor, objShade, objSize)
+        # objColor, objType, objSize, objShade = self.missions_list[0]
+        # if objType == 'key':
+        #     obj = Key(objColor, objShade, objSize)
+        # elif objType == 'ball':
+        #     obj = Ball(objColor, objShade, objSize)
 
-        self.place_obj(obj)
-        objs.append(obj)
+        # self.place_obj(obj)
+        # objs.append(obj)
 
         # For each object to be generated
         while len(objs) < self.numObjs:
@@ -85,9 +85,9 @@ class FetchAttrEnv(MiniGridEnv):
         self.place_agent()
 
         # Choose a random object to be picked up
-        #target = objs[self._rand_int(0, len(objs))]
+        target = objs[self._rand_int(0, len(objs))]
 
-        target = objs[0]
+        # target = objs[0]
         self.targetType = target.type
         self.targetColor = target.color
         self.targetShade = target.shade
