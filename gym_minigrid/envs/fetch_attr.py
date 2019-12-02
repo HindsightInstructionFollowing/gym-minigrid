@@ -18,14 +18,18 @@ class FetchAttrEnv(MiniGridEnv):
     """
 
     def __init__(
-        self,
-        size=8,
-        numObjs=10,
-        missions_file_str="gym-minigrid/gym_minigrid/envs/missions/fetch_train_missions_10_percent.json"
+            self,
+            size=8,
+            numObjs=10,
+            missions_file_str="gym-minigrid/gym_minigrid/envs/missions/fetch_train_missions_10_percent.json",
+            single_mission=False
+
     ):
         self.numObjs = numObjs
 
         self.missions_list = json.load(open(missions_file_str, 'r'))
+
+        self.single_mission = single_mission
 
         super().__init__(
             grid_size=size,
@@ -54,14 +58,15 @@ class FetchAttrEnv(MiniGridEnv):
         objs = []
 
         # First object, always the same
-        # objColor, objType, objSize, objShade = self.missions_list[0]
-        # if objType == 'key':
-        #     obj = Key(objColor, objShade, objSize)
-        # elif objType == 'ball':
-        #     obj = Ball(objColor, objShade, objSize)
+        if self.single_mission:
+            objColor, objType, objSize, objShade = self.missions_list[0]
+            if objType == 'key':
+                obj = Key(objColor, objShade, objSize)
+            elif objType == 'ball':
+                obj = Ball(objColor, objShade, objSize)
 
-        # self.place_obj(obj)
-        # objs.append(obj)
+            self.place_obj(obj)
+            objs.append(obj)
 
         # For each object to be generated
         while len(objs) < self.numObjs:
@@ -85,9 +90,11 @@ class FetchAttrEnv(MiniGridEnv):
         self.place_agent()
 
         # Choose a random object to be picked up
-        target = objs[self._rand_int(0, len(objs))]
+        if self.single_mission:
+            target = objs[0]
+        else:
+            target = objs[self._rand_int(0, len(objs))]
 
-        # target = objs[0]
         self.targetType = target.type
         self.targetColor = target.color
         self.targetShade = target.shade
