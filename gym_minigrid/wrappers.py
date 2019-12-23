@@ -5,7 +5,8 @@ from functools import reduce
 import numpy as np
 import gym
 from gym import error, spaces, utils
-from gym_minigrid.minigrid import OBJECT_TO_IDX, COLOR_TO_IDX, STATE_TO_IDX
+from gym_minigrid.minigrid import OBJECT_TO_IDX, COLOR_TO_IDX, STATE_TO_IDX, \
+    SHADE_TO_IDX, SIZE_TO_IDX
 from gym_minigrid.minigrid import CELL_PIXELS
 
 import json
@@ -500,6 +501,34 @@ class TorchWrapper(gym.core.ObservationWrapper):
         return torch.tensor(obs).unsqueeze(0).to(self.device)
 
 
+class VisionObjectiveWrapper(gym.core.ObservationWrapper):
+
+    def __init__(self, env, with_distractor=True):
+        super().__init__(env)
+        obs_space = {}
+        for key in env.observation_space.spaces.keys():
+            obs_space[key] = env.observation_space.spaces[key]
+
+        # The objective mission is being added
+        h, w, c = obs_space["image"].shape
+        obs_space["image"] = spaces.Box(0, 255, shape=(h,w, 2*c-1))
+        self.observation_space = gym.spaces.Dict(obs_space)
+
+        # Do you want to remove distractor object (otherobject present)
+        self.with_distractor = with_distractor
+
+    def observation(self, obs):
+        if self.with_distractor:
+            state_obj = obs["final_state"]
+        else:
+            state_obj = obs["final_state_wo_distractor"]
+        assert obs["image"].shape == state_obj.shape
+        state_obj = state_obj[:,:,:-1]
+
+        obs["image"] = np.concatenate((state_obj, obs["image"]), axis=2)
+        return obs
+
+
 class MinigridTorchWrapper(gym.core.ObservationWrapper):
     def __init__(self, env, device='cpu'):
         super().__init__(env)
@@ -532,11 +561,14 @@ class MinigridTorchWrapper(gym.core.ObservationWrapper):
 def wrap_env_from_list(env, wrappers_json):
 
     str2wrap = {
+        "directionwrapper" : DirectionWrapper,
+        "visionobjectivewrapper" : VisionObjectiveWrapper,
         "framestackerwrapper" : FrameStackerWrapper,
         "word2indexwrapper": Word2IndexWrapper,
         "removeuselessactionwrapper" : RemoveUselessActionWrapper,
         "removeuselesschannelwrapper" : RemoveUselessChannelWrapper,
-        "minigridtorchwrapper": MinigridTorchWrapper
+        "minigridtorchwrapper": MinigridTorchWrapper,
+        "vizdoom2minigrid" : Vizdoom2Minigrid
     }
 
     for wrap_dict in wrappers_json:
@@ -544,6 +576,103 @@ def wrap_env_from_list(env, wrappers_json):
         env = current_wrap(env, **wrap_dict["params"])
 
     return env
+
+class DirectionWrapper(gym.core.ObservationWrapper):
+    """
+    Add direction as 2 features map in the image space
+    if image is (7,7,3), new state will be (7,7,5)
+    """
+    def __init__(self, env):
+        super().__init__(env)
+
+        obs_space = {}
+        for key in env.observation_space.spaces.keys():
+            obs_space[key] = env.observation_space.spaces[key]
+
+        new_shape = list(obs_space["image"].shape)
+        #add 2 channels
+        new_shape[2] += 2
+        obs_space["image"] = spaces.Box(0, 255, shape=new_shape)
+
+    def observation(self, obs):
+        assert 'direction' in obs, "Direction not present in observation"
+
+        h,w = obs["image"].shape[:2]
+        direction = obs["direction"]
+
+        direction_channels = np.zeros((h, w, 2))
+
+        if direction == 0: # East
+            direction_channels[:,:,0] = 1
+        elif direction == 1: # South
+            direction_channels[:,:,1] = 1
+        elif direction == 2: # West
+            direction_channels[:,:,0] = -1
+        elif direction == 3: # North
+            direction_channels[:,:,1] = -1
+
+        obs["image"] = np.concatenate((direction, obs["image"]), axis=2)
+        return obs
+
+
+class FullyObsWrapperAndState(gym.core.ObservationWrapper):
+    """
+    Fully observable gridworld using a compact grid encoding
+    """
+
+    def __init__(self, env):
+        super().__init__(env)
+
+        self.observation_space.spaces["image"] = spaces.Box(
+            low=0,
+            high=255,
+            shape=(self.env.width, self.env.height, 3),  # number of cells
+            dtype='uint8'
+        )
+
+    def observation(self, obs):
+        env = self.unwrapped
+        full_grid = env.grid.encode()
+        full_grid[env.agent_pos[0]][env.agent_pos[1]] = np.array([
+            OBJECT_TO_IDX['agent'],
+            COLOR_TO_IDX['red'],
+            SHADE_TO_IDX['very_light'],
+            SIZE_TO_IDX['tiny'],
+            env.agent_dir
+        ])
+
+        return {
+            'mission': obs['mission'],
+            'image_full': full_grid,
+            'image': env.gen_obs()['image']
+        }
+
+
+class Vizdoom2Minigrid(gym.core.Wrapper):
+    def __init__(self, env):
+        super().__init__(env)
+    def reset(self):
+        (image, instruction), reward, is_done, info = self.env.reset()
+        wordidx = [self.env.word_to_idx[word] for word in instruction.split()]
+        self.mission = wordidx
+        self.mission_raw = instruction
+        self.mission_length = len(wordidx)
+        return {
+            'mission_raw': self.mission_raw,
+            'mission': self.mission,
+            'image': image,
+            "mission_length": self.mission_length
+        }
+
+    def step(self, action):
+        (image, instruction), reward, done, info = self.env.step(action)
+        return {
+            'mission_raw': self.mission_raw,
+            'mission': self.mission,
+            'image': image,
+            "mission_length": self.mission_length
+        }, reward, done, info
+
 
 if __name__ == "__main__":
 

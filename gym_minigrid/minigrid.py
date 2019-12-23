@@ -8,6 +8,8 @@ from gym.utils import seeding
 # Size in pixels of a cell in the full-scale human view
 CELL_PIXELS = 32
 
+
+# type, color, shade, size
 # Map of color names to RGB values
 COLORS = {
     'red'   : np.array([255, 0, 0]),
@@ -73,11 +75,11 @@ DIR_TO_VEC = [
 #=======================
 # Map of object shade to integers
 SHADE_TO_IDX = {
-    'very_light'    : 0,
+    'very_light'   : 0,
     'light'        : 1,
-    'neutral'       : 2,
-    'dark'          : 3,
-    'very_dark'      : 4,
+    'neutral'      : 2,
+    'dark'         : 3,
+    'very_dark'    : 4,
 }
 
 IDX_TO_SHADE = dict(zip(SHADE_TO_IDX.values(), SHADE_TO_IDX.keys()))
@@ -86,10 +88,10 @@ DEFAULT_SHADE = IDX_TO_SHADE[0]
 # Map of object size to integers
 SIZE_TO_IDX = {
     'tiny'    : 0,
-    'small'        : 1,
-    'medium'       : 2,
-    'large'          : 3,
-    'giant'      : 4,
+    'small'   : 1,
+    'medium'  : 2,
+    'large'   : 3,
+    'giant'   : 4,
 }
 
 IDX_TO_SIZE = dict(zip(SIZE_TO_IDX.values(), SIZE_TO_IDX.keys()))
@@ -97,6 +99,17 @@ DEFAULT_SIZE= IDX_TO_SIZE[0]
 
 #=====================================================
 #=====================================================
+def check_integrity(im, mission):
+    row = im[3,5]
+    assert all(row[:4] == (OBJECT_TO_IDX[mission[1]], COLOR_TO_IDX[mission[0]], SHADE_TO_IDX[mission[3]], 0))
+#=====================================================
+#=====================================================
+
+
+
+
+
+
 
 class WorldObj:
     """

@@ -1,0 +1,20 @@
+[
+  ["red", "key", "tiny", "light"],
+  ["red", "key", "tiny", "neutral"],
+  ["red", "ball", "tiny", "very_dark"],
+  ["green", "ball", "tiny", "very_light"],
+  ["green", "ball", "tiny", "light"],
+  ["green", "ball", "tiny", "neutral"],
+  ["blue", "ball", "tiny", "light"],
+  ["blue", "key", "tiny", "neutral"],
+  ["blue", "key", "tiny", "light"],
+  ["yellow", "ball", "tiny", "very_light"],
+  ["yellow", "key", "tiny", "dark"],
+  ["yellow", "key", "tiny", "very_dark"],
+  ["grey", "ball", "tiny", "dark"],
+  ["grey", "key", "tiny", "dark"],
+  ["grey", "ball", "tiny", "very_light"],
+  ["purple", "key", "tiny", "neutral"],
+  ["purple", "ball", "tiny", "light"],
+  ["purple", "ball", "tiny", "dark"]
+]

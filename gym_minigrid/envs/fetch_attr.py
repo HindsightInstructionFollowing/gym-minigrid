@@ -6,6 +6,11 @@ import json
 import random
 from os import path
 
+import pickle as pkl
+
+from gym_minigrid.envs.fetch import FetchEnv
+from os import path
+
 class FetchAttrEnv(MiniGridEnv):
     """
     Environment in which the agent has to fetch a random object
@@ -59,7 +64,7 @@ class FetchAttrEnv(MiniGridEnv):
 
         # First object, always the same
         if self.single_mission:
-            objColor, objType, objSize, objShade = self.missions_list[0]
+            objColor, objType, objSize, objShade = self.get_first_mission()
             if objType == 'key':
                 obj = Key(objColor, objShade, objSize)
             elif objType == 'ball':
@@ -70,11 +75,11 @@ class FetchAttrEnv(MiniGridEnv):
 
         # For each object to be generated
         while len(objs) < self.numObjs:
-            rand_mission = random.choice(self.missions_list)
-            objColor = rand_mission[0]
-            objType = rand_mission[1]
-            objSize = rand_mission[2]
-            objShade = rand_mission[3]
+            rand_object = self.sample_object()
+            objColor = rand_object[0]
+            objType = rand_object[1]
+            objSize = rand_object[2]
+            objShade = rand_object[3]
 
             if objType == 'key':
                 obj = Key(objColor, objShade, objSize)
@@ -94,6 +99,7 @@ class FetchAttrEnv(MiniGridEnv):
             target = objs[0]
         else:
             target = objs[self._rand_int(0, len(objs))]
+            self.create_visual_mission_from_features(target)
 
         self.targetType = target.type
         self.targetColor = target.color
@@ -141,6 +147,59 @@ class FetchAttrEnv(MiniGridEnv):
                 done = True
 
         return obs, reward, done, info
+
+    def sample_object(self):
+        return random.choice(self.missions_list)
+    def get_first_mission(self):
+        return self.missions_list[0]
+    def get_visual_mission_from_features(self, target):
+        return None
+
+class FetchAttrDictLoaded(FetchAttrEnv):
+    def __init__(self, size=8, numObjs=3, dict_mission_str="MiniGrid-Fetch-6x6-N2-v0_all_missions.pkl"):
+
+        gym_mission_path = "gym-minigrid/gym_minigrid/envs/missions/"
+        full_dict_path = path.join(gym_mission_path, dict_mission_str)
+        self.mission_dict = pkl.load(open(full_dict_path, 'rb'))
+        super().__init__(size=size, numObjs=numObjs)
+
+    def gen_obs(self):
+        grid, vis_mask = self.gen_obs_grid()
+
+        # Encode the partially observable view into a numpy array
+        image = grid.encode(vis_mask)
+
+        assert hasattr(self, 'mission'), "environments must define a textual mission string"
+
+        # Observations are dictionaries containing:
+        # - an image (partially observable view of the environment)
+        # - the agent's direction/orientation (acting as a compass)
+        # - a textual mission string (instructions for the agent)
+        obs = {
+            'image': image,
+            'direction': self.agent_dir,
+            'mission': self.mission,
+            'final_state' : self.mission_vision,
+            'final_state_wo_distractor': self.mission_vision_no_distractor
+        }
+
+        return obs
+
+    def sample_object(self):
+        mission = random.sample(list(self.mission_dict), 1)[0]
+        return mission
+
+    def get_first_mission(self):
+        for key in self.mission_dict.keys():
+            mission = key
+        return mission
+
+    def create_visual_mission_from_features(self, target):
+        key = (target.color, target.type, target.size, target.shade)
+
+        # Sample a random visual goal (random distractor)
+        self.mission_vision = random.choice(self.mission_dict[key]["final_state"])
+        self.mission_vision_no_distractor = self.mission_dict[key]["final_state_wo_distraction"][0]
 
 # class FetchEnv5x5N2(FetchEnv):
 #     def __init__(self):
