@@ -461,6 +461,10 @@ class Word2IndexWrapper(gym.core.ObservationWrapper):
         obs["raw_mission"] = self.raw_mission
         obs["mission_length"] = self.len_mission
 
+        if "hindsight_mission" in obs:
+            obs["hindsight_raw_mission"] = obs["hindsight_mission"]
+            obs["hindsight_mission"] = [self.w2i[word] for word in obs["hindsight_mission"].split(" ")]
+
         return obs, reward, done, info
 
 

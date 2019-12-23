@@ -106,21 +106,26 @@ class FetchAttrEnv(MiniGridEnv):
         self.targetShade = target.shade
         self.targetSize = target.size
 
-        descStr = '%s %s %s %s' % (self.targetColor, self.targetType, self.targetShade, self.targetSize)
+        self.mission = self.generate_random_goal_string(self.targetColor, self.targetType, self.targetShade, self.targetSize)
+        assert hasattr(self, 'mission')
+
+    def generate_random_goal_string(self, target_color, target_type, target_shade, target_size):
+        descStr = '%s %s %s %s' % (target_color, target_type, target_shade, target_size)
 
         # Generate the mission string
         idx = self._rand_int(0, 5)
         if idx == 0:
-            self.mission = 'get a %s' % descStr
+            mission = 'get a %s' % descStr
         elif idx == 1:
-            self.mission = 'go get a %s' % descStr
+            mission = 'go get a %s' % descStr
         elif idx == 2:
-            self.mission = 'fetch a %s' % descStr
+            mission = 'fetch a %s' % descStr
         elif idx == 3:
-            self.mission = 'go fetch a %s' % descStr
+            mission = 'go fetch a %s' % descStr
         elif idx == 4:
-            self.mission = 'you must fetch a %s' % descStr
-        assert hasattr(self, 'mission')
+            mission = 'you must fetch a %s' % descStr
+        return mission
+
 
     def step(self, action):
         obs, reward, done, info = MiniGridEnv.step(self, action)
@@ -142,7 +147,11 @@ class FetchAttrEnv(MiniGridEnv):
                     "size": self.carrying.size
                 }
 
-                info["hindsight_target"] = hindsight_target
+                obs["hindsight_target"] = hindsight_target
+                obs["hindsight_mission"] = self.generate_random_goal_string(target_color=self.carrying.color,
+                                                                             target_type=self.carrying.type,
+                                                                             target_shade=self.carrying.shade,
+                                                                             target_size=self.carrying.size)
                 reward = 0
                 done = True
 
@@ -152,7 +161,7 @@ class FetchAttrEnv(MiniGridEnv):
         return random.choice(self.missions_list)
     def get_first_mission(self):
         return self.missions_list[0]
-    def get_visual_mission_from_features(self, target):
+    def create_visual_mission_from_features(self, target):
         return None
 
 class FetchAttrDictLoaded(FetchAttrEnv):
