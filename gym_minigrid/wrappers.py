@@ -427,7 +427,6 @@ class Word2IndexWrapper(gym.core.ObservationWrapper):
         assert self.w2i["<END>"] == 1
         assert self.w2i["<PAD>"] == 2
 
-
         # Index => Word
         self.i2w = list(range(len(self.w2i)))
         for word, index in self.w2i.items():
@@ -443,9 +442,9 @@ class Word2IndexWrapper(gym.core.ObservationWrapper):
     def reset(self):
         obs = self.env.reset()
 
-        self.raw_mission = obs["mission"]
-        self.current_mission =  [self.w2i["<BEG>"]] + [self.w2i[word] for word in obs["mission"].split(" ")] + [self.w2i["<END>"]]
-        self.len_mission = len(self.current_mission)
+        self.raw_mission =     obs["mission"]
+        self.current_mission = [self.w2i[word] for word in obs["mission"].split(" ")] + [self.w2i["<END>"]]
+        self.len_mission =     len(self.current_mission)
 
         # No Padding, done in model
         # mission_len = len(self.current_mission)
