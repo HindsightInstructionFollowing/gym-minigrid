@@ -1,8 +1,8 @@
 {
   "vocabulary" : {
-    "PAD": 0,
-    "get": 1,
-    "a": 2,
+    "<BEG>": 0,
+    "<END>": 1,
+    "<PAD>": 2,
     "go": 3,
     "fetch": 4,
     "you": 5,
@@ -25,8 +25,8 @@
     "medium": 22,
     "large": 23,
     "giant": 24,
-    "BEG": 25,
-    "END": 26,
+    "get": 25,
+    "a": 26,
     "north" : 27,
     "east" :  28,
     "west" :  29,
