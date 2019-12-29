@@ -423,6 +423,7 @@ class Word2IndexWrapper(gym.core.ObservationWrapper):
         self.max_vocabulary = len(self.w2i)
         self.sentence_max_length = vocab_dict["sentence_max_length"]
 
+        # Vocab should respect those conventions, to avoid moving variables around or using global var
         assert self.w2i["<BEG>"] == 0
         assert self.w2i["<END>"] == 1
         assert self.w2i["<PAD>"] == 2
@@ -439,11 +440,15 @@ class Word2IndexWrapper(gym.core.ObservationWrapper):
         obs_space["mission"] = spaces.Box(0, self.max_vocabulary, (self.sentence_max_length,))
         self.observation_space = spaces.Dict(obs_space)
 
+        #Mission related
+        self.mission = None      # List of indexes, each index represent a word, present in self.w2i (vocabulary)
+        self.raw_mission = None  # Str representation of the mission, easier for visualisation
+
     def reset(self):
         obs = self.env.reset()
 
         self.raw_mission =     obs["mission"]
-        self.current_mission = [self.w2i[word] for word in obs["mission"].split(" ")] + [self.w2i["<END>"]]
+        self.current_mission = [self.w2i["<BEG>"]] + [self.w2i[word] for word in obs["mission"].split(" ")] + [self.w2i["<END>"]]
         self.len_mission =     len(self.current_mission)
 
         # No Padding, done in model

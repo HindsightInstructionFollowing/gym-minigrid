@@ -28,5 +28,5 @@
     "get": 25,
     "a": 26
   },
-  "sentence_max_length" : 10
+  "sentence_max_length" : 9
 }
