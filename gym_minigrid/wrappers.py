@@ -337,12 +337,16 @@ class ViewSizeWrapper(gym.core.Wrapper):
 
 
 class FrameStackerWrapper(gym.core.ObservationWrapper):
-    def __init__(self, env, n_stack=4):
+    def __init__(self, env, n_stack=4, create_dim=False):
         """
         Stack last frames to give the agent a bit a memory
 
         old observation shape is : (width, height, channel)
-        new observation is : (N_STACK, width, height, channel)
+        new observation is :
+            (N_STACK * width, height, channel) if create_dim = False
+            (N_STACK, width, height, channel) if create_dim = True
+
+
         """
         super().__init__(env=env)
 
@@ -351,8 +355,16 @@ class FrameStackerWrapper(gym.core.ObservationWrapper):
         for key in env.observation_space.spaces.keys():
             obs_space[key] = env.observation_space.spaces[key]
 
-        low, high, shape = int(obs_space["image"].low.min()), int(obs_space["image"].high.max()), obs_space["image"].shape
-        new_shape = (n_stack, *shape)
+        low, high, new_shape = int(obs_space["image"].low.min()), int(obs_space["image"].high.max()), obs_space["image"].shape
+
+        if create_dim:
+            self.stack_function = np.stack
+            new_shape = (n_stack, *new_shape)
+        else:
+            new_shape = list(new_shape)
+            new_shape[2] *= n_stack
+            self.stack_function = lambda x : np.concatenate(x, axis=2)
+
         obs_space["image"] = spaces.Box(low=low, high=high, shape=new_shape)
 
         self.observation_space = spaces.Dict(obs_space)
@@ -364,7 +376,7 @@ class FrameStackerWrapper(gym.core.ObservationWrapper):
         last_frame = obs["image"]
         obs["last_state"] = last_frame
         self.last_frames = [last_frame]*self.n_stack
-        obs["image"] = np.stack(self.last_frames)
+        obs["image"] = self.stack_function(self.last_frames)
         return obs
 
     def step(self, action):
@@ -373,7 +385,7 @@ class FrameStackerWrapper(gym.core.ObservationWrapper):
         obs["last_state"] = obs["image"]
         self.last_frames.append(obs["image"])
         self.last_frames.pop(0)
-        obs["image"] = np.stack(self.last_frames)
+        obs["image"] = self.stack_function(self.last_frames)
 
         return obs, reward, done, info
 
