@@ -27,14 +27,17 @@ class FetchAttrEnv(MiniGridEnv):
             size=8,
             numObjs=10,
             missions_file_str="gym-minigrid/gym_minigrid/envs/missions/fetch_train_missions_10_percent.json",
-            single_mission=False
-
+            single_mission=False,
+            n_step_between_test=0,
+            n_step_test=0
     ):
         self.numObjs = numObjs
-
         self.missions_list = json.load(open(missions_file_str, 'r'))
-
         self.single_mission = single_mission
+
+        # If the env is used as test, those variable will help
+        self.n_step_between_test=n_step_between_test
+        self.n_step_test=n_step_test
 
         super().__init__(
             grid_size=size,
@@ -45,6 +48,8 @@ class FetchAttrEnv(MiniGridEnv):
 
         obs_space = {"image" : gym.spaces.Box(0, 255, (7,7,5))}
         self.observation_space = gym.spaces.Dict(obs_space)
+
+        self.max_steps = min(self.max_steps, 70)
 
     def _gen_grid(self, width, height):
         # Adding new attributes here !
