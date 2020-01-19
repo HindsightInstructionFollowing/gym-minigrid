@@ -677,9 +677,15 @@ class FullyObsWrapperAndState(gym.core.ObservationWrapper):
 class Vizdoom2Minigrid(gym.core.Wrapper):
     def __init__(self, env):
         super().__init__(env)
+
+        # Vocab should respect those conventions, to avoid moving variables around or using global var
+        assert self.env.word_to_idx["<BEG>"] == 0
+        assert self.env.word_to_idx["<END>"] == 1
+        assert self.env.word_to_idx["<PAD>"] == 2
+
+
     def reset(self):
-        raise NotImplementedError("Need to add <BEG>, <END> into vizdoom")
-        (image, instruction), reward, is_done, info = self.env.reset()
+        (image, instruction, hindsight_mission), reward, is_done, info = self.env.reset()
         wordidx = [self.env.word_to_idx[word] for word in instruction.split()]
         self.mission = wordidx
         self.mission_raw = instruction
@@ -688,16 +694,20 @@ class Vizdoom2Minigrid(gym.core.Wrapper):
             'mission_raw': self.mission_raw,
             'mission': self.mission,
             'image': image,
-            "mission_length": self.mission_length
+            "mission_length": self.mission_length,
+            "hindsight_mission" : None
         }
 
     def step(self, action):
-        (image, instruction), reward, done, info = self.env.step(action)
+        (image, instruction, hindsight_mission), reward, done, info = self.env.step(action)
+        hindsight_mission = [self.env.word_to_idx[word] for word in
+                             hindsight_mission.split()] if hindsight_mission else None
         return {
             'mission_raw': self.mission_raw,
             'mission': self.mission,
             'image': image,
-            "mission_length": self.mission_length
+            "mission_length": self.mission_length,
+            "hindsight_mission" : hindsight_mission
         }, reward, done, info
 
 
