@@ -686,7 +686,10 @@ class Vizdoom2Minigrid(gym.core.Wrapper):
 
     def reset(self):
         (image, instruction, hindsight_mission), reward, is_done, info = self.env.reset()
-        wordidx = [self.env.word_to_idx[word] for word in instruction.split()]
+        wordidx = [self.env.word_to_idx["<BEG>"]]
+        wordidx += [self.env.word_to_idx[word] for word in instruction.split()]
+        wordidx += [self.env.word_to_idx["<END>"]]
+
         self.mission = wordidx
         self.mission_raw = instruction
         self.mission_length = len(wordidx)
