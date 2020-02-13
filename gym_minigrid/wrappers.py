@@ -685,7 +685,7 @@ class Vizdoom2Minigrid(gym.core.Wrapper):
 
 
     def reset(self):
-        (image, instruction, hindsight_mission), reward, is_done, info = self.env.reset()
+        (image, instruction, hindsight_mission, correct_obj_name), reward, is_done, info = self.env.reset()
         wordidx = [self.env.word_to_idx["<BEG>"]]
         wordidx += [self.env.word_to_idx[word] for word in instruction.split()]
         wordidx += [self.env.word_to_idx["<END>"]]
@@ -698,11 +698,12 @@ class Vizdoom2Minigrid(gym.core.Wrapper):
             'mission': self.mission,
             'image': image,
             "mission_length": self.mission_length,
-            "hindsight_mission" : None
+            "hindsight_mission" : None,
+            "correct_obj_name" : correct_obj_name
         }
 
     def step(self, action):
-        (image, instruction, hindsight_mission), reward, done, info = self.env.step(action)
+        (image, instruction, hindsight_mission, correct_obj_name), reward, done, info = self.env.step(action)
         hindsight_mission = [self.env.word_to_idx[word] for word in
                              hindsight_mission.split()] if hindsight_mission else None
         return {
@@ -710,8 +711,9 @@ class Vizdoom2Minigrid(gym.core.Wrapper):
             'mission': self.mission,
             'image': image,
             "mission_length": self.mission_length,
-            "hindsight_mission" : hindsight_mission
-        }, reward, done, info
+            "hindsight_mission" : hindsight_mission,
+            "correct_obj_name": correct_obj_name
+            }, reward, done, info
 
 
 if __name__ == "__main__":
