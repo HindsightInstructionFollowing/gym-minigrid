@@ -554,6 +554,19 @@ class VisionObjectiveWrapper(gym.core.ObservationWrapper):
         obs["image"] = np.concatenate((state_obj, obs["image"]), axis=2)
         return obs
 
+class LastActionWrapper(gym.core.Wrapper):
+    def __init__(self, env):
+        super().__init__(env)
+
+    def reset(self):
+        obs = self.env.reset()
+        obs["last_action"] = self.action_space.n # Padding action
+        return obs
+
+    def step(self, action):
+        obs, reward, is_done, info = self.env.step(action)
+        obs["last_action"] = action
+        return obs, reward, is_done, info
 
 class MinigridTorchWrapper(gym.core.ObservationWrapper):
     def __init__(self, env, device='cpu'):
@@ -582,11 +595,13 @@ class MinigridTorchWrapper(gym.core.ObservationWrapper):
         obs["image"] = obs["image"].unsqueeze(0).to(self.device)
         obs["mission"] = torch.LongTensor(obs["mission"]).unsqueeze(0).to(self.device)
         obs["mission_length"] = torch.LongTensor([obs["mission_length"]]).to(self.device)
+        obs["last_action"] = torch.LongTensor([obs["last_action"]]).to(self.device) if "last_action" in obs else 0
         return obs
 
 def wrap_env_from_list(env, wrappers_json):
 
     str2wrap = {
+        "lastactionwrapper" : LastActionWrapper,
         "directionwrapper" : DirectionWrapper,
         "visionobjectivewrapper" : VisionObjectiveWrapper,
         "framestackerwrapper" : FrameStackerWrapper,
@@ -594,7 +609,8 @@ def wrap_env_from_list(env, wrappers_json):
         "removeuselessactionwrapper" : RemoveUselessActionWrapper,
         "removeuselesschannelwrapper" : RemoveUselessChannelWrapper,
         "minigridtorchwrapper": MinigridTorchWrapper,
-        "vizdoom2minigrid" : Vizdoom2Minigrid
+        "vizdoom2minigrid" : Vizdoom2Minigrid,
+        "normalizewrapper" : NormalizeWrapper
     }
 
     for wrap_dict in wrappers_json:
@@ -714,6 +730,21 @@ class Vizdoom2Minigrid(gym.core.Wrapper):
             "hindsight_mission" : hindsight_mission,
             "correct_obj_name": correct_obj_name
             }, reward, done, info
+
+
+class NormalizeWrapper(gym.core.ObservationWrapper):
+    def __init__(self, env, device):
+        # Todo : do a running average instead of computing it in advance
+
+        super().__init__(env)
+        input_space = self.observation_space["image"].shape
+
+        self.mean = torch.FloatTensor([53.17008 , 54.069958, 41.62655 ]).unsqueeze(1).unsqueeze(1).expand(*input_space).to(device)
+        self.std  = torch.FloatTensor([31.937586, 32.52923 , 24.772118]).unsqueeze(1).unsqueeze(1).expand(*input_space).to(device)
+
+    def observation(self, observation):
+        observation["image"] = (observation["image"] - self.mean) / self.std
+        return observation
 
 
 if __name__ == "__main__":
