@@ -29,5 +29,6 @@
     "a": 26,
     "then" : 27,
     "and" : 28
-  }
+  },
+  "sentence_max_length" : 100
 }
