@@ -1,0 +1,33 @@
+{
+  "vocabulary" : {
+    "<BEG>": 0,
+    "<END>": 1,
+    "<PAD>": 2,
+    "go": 3,
+    "fetch": 4,
+    "you": 5,
+    "must": 6,
+    "red": 7,
+    "green": 8,
+    "blue": 9,
+    "purple": 10,
+    "yellow": 11,
+    "grey": 12,
+    "key": 13,
+    "ball": 14,
+    "very_light": 15,
+    "light": 16,
+    "neutral": 17,
+    "dark": 18,
+    "very_dark": 19,
+    "tiny": 20,
+    "small": 21,
+    "medium": 22,
+    "large": 23,
+    "giant": 24,
+    "get": 25,
+    "a": 26,
+    "then" : 27,
+    "and" : 28
+  }
+}
