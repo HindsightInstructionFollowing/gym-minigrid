@@ -52,7 +52,7 @@ class FetchAttrEnv(MiniGridEnv):
         obs_space = {"image" : gym.spaces.Box(0, 255, (7,7,5))}
         self.observation_space = gym.spaces.Dict(obs_space)
 
-        self.max_steps = min(self.max_steps, 50)
+        self.max_steps = min(self.max_steps, max_steps)
 
     def _gen_grid(self, width, height):
         # Adding new attributes here !
@@ -109,16 +109,12 @@ class FetchAttrEnv(MiniGridEnv):
             target = objs[self._rand_int(0, len(objs))]
             self.create_visual_mission_from_features(target)
 
-        self.targetType = target.type
-        self.targetColor = target.color
-        self.targetShade = target.shade
-        self.targetSize = target.size
-
-        self.mission = self.generate_random_goal_string(self.targetColor, self.targetType, self.targetShade, self.targetSize)
+        self.target = target
+        self.mission = self.generate_random_goal_string(target)
         assert hasattr(self, 'mission')
 
-    def generate_random_goal_string(self, target_color, target_type, target_shade, target_size):
-        descStr = '%s %s %s %s' % (target_color, target_type, target_shade, target_size)
+    def generate_random_goal_string(self, target):
+        descStr = '%s %s %s %s' % (target.color, target.type, target.shade, target.size)
 
         # Generate the mission string
         idx = self._rand_int(0, 5)
@@ -156,10 +152,8 @@ class FetchAttrEnv(MiniGridEnv):
                 }
 
                 obs["hindsight_target"] = hindsight_target
-                obs["hindsight_mission"] = self.generate_random_goal_string(target_color=self.carrying.color,
-                                                                             target_type=self.carrying.type,
-                                                                             target_shade=self.carrying.shade,
-                                                                             target_size=self.carrying.size)
+                obs["hindsight_mission"] = self.generate_random_goal_string(self.carrying)
+
                 reward = 0
                 done = True
 
