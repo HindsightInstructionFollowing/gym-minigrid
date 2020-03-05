@@ -135,10 +135,10 @@ class FetchAttrEnv(MiniGridEnv):
         obs, reward, done, info = MiniGridEnv.step(self, action)
 
         if self.carrying:
-            if self.carrying.color == self.targetColor \
-                and self.carrying.type == self.targetType \
-                and self.carrying.shade == self.targetShade \
-                and self.carrying.size == self.targetSize:
+            if self.carrying.color == self.target.color \
+                and self.carrying.type == self.target.type \
+                and self.carrying.shade == self.target.shade \
+                and self.carrying.size == self.target.size:
 
                 reward = self._reward()
                 done = True
