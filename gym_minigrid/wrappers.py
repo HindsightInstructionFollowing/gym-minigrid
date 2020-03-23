@@ -506,6 +506,24 @@ class CartPoleWrapper(gym.core.ObservationWrapper):
         obs["mission_length"] = [2]
         return obs
 
+class StateNormWrapper(gym.core.ObservationWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+
+        # Modify observation space to contains the correct number of channel
+        obs_space = {}
+        for key in env.observation_space.spaces.keys():
+            obs_space[key] = env.observation_space.spaces[key]
+
+        old_shape = obs_space["image"].shape
+        # Change the last dimension, whatever the number of dimension
+        obs_space["image"] = spaces.Box(0, 1, shape=old_shape)
+        self.observation_space = spaces.Dict(obs_space)
+
+    def observation(self, observation):
+        observation["image"] = observation["image"] / 255
+        return observation
+
 
 class TorchWrapper(gym.core.ObservationWrapper):
     def __init__(self, env, device='cpu'):
@@ -610,7 +628,8 @@ def wrap_env_from_list(env, wrappers_json):
         "removeuselesschannelwrapper" : RemoveUselessChannelWrapper,
         "minigridtorchwrapper": MinigridTorchWrapper,
         "vizdoom2minigrid" : Vizdoom2Minigrid,
-        "normalizewrapper" : NormalizeWrapper
+        "normalizewrapper" : NormalizeWrapper,
+        "statenormwrapper" : StateNormWrapper
     }
 
     for wrap_dict in wrappers_json:
@@ -699,6 +718,10 @@ class Vizdoom2Minigrid(gym.core.Wrapper):
         assert self.env.word_to_idx["<END>"] == 1
         assert self.env.word_to_idx["<PAD>"] == 2
 
+    def pad_mission(self, wordidx):
+        mission_length = len(wordidx)
+        assert mission_length <= self.env.unwrapped.mission_max_length
+        return wordidx + [self.env.word_to_idx["<PAD>"]] * (self.env.unwrapped.mission_max_length - mission_length)
 
     def reset(self):
         (image, instruction, hindsight_mission, correct_obj_name), reward, is_done, info = self.env.reset()
@@ -706,9 +729,11 @@ class Vizdoom2Minigrid(gym.core.Wrapper):
         wordidx += [self.env.word_to_idx[word] for word in instruction.split()]
         wordidx += [self.env.word_to_idx["<END>"]]
 
-        self.mission = wordidx
         self.mission_raw = instruction
         self.mission_length = len(wordidx)
+
+        self.mission = self.pad_mission(wordidx)
+
         return {
             'mission_raw': self.mission_raw,
             'mission': self.mission,
@@ -720,8 +745,15 @@ class Vizdoom2Minigrid(gym.core.Wrapper):
 
     def step(self, action):
         (image, instruction, hindsight_mission, correct_obj_name), reward, done, info = self.env.step(action)
-        hindsight_mission = [self.env.word_to_idx[word] for word in
-                             hindsight_mission.split()] if hindsight_mission else None
+
+        if hindsight_mission:
+            hindsight_mission = [self.env.word_to_idx['<BEG>']] + [self.env.word_to_idx[word]
+                                                                   for word in hindsight_mission.split()]
+
+            hindsight_mission.append(self.env.word_to_idx['<END>'])
+
+            hindsight_mission = self.pad_mission(hindsight_mission)
+
         return {
             'mission_raw': self.mission_raw,
             'mission': self.mission,
